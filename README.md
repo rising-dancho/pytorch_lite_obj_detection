@@ -2,6 +2,8 @@
 - object detection snippet using flutter plugin : https://pub.dev/packages/pytorch_lite
 - trained custom model using Ultralytics Yolov8 (exported as .torchscript) : https://github.com/ultralytics/ultralytics
 - annotation and dataset creation using Roboflow: https://roboflow.com/
+- training code: https://github.com/rising-dancho/yolov8_training
+- sample yolo v8 dataset: https://drive.google.com/file/d/15kZqkz2WyLe4enpO0vxXe6haARo2mZkK/view
 
 A new Flutter project.
 
