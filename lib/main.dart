@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
-
-import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:pytorch_lite/pytorch_lite.dart';
+import 'package:flutter/services.dart';
 
 Future<void> main() async {
   runApp(const RunModelByImageDemo());
@@ -18,55 +16,42 @@ class RunModelByImageDemo extends StatefulWidget {
 }
 
 class RunModelByImageDemoState extends State<RunModelByImageDemo> {
-  ClassificationModel? _imageModel;
-  //CustomModel? _customModel;
   late ModelObjectDetection _objectModel;
   late ModelObjectDetection _objectModelYoloV8;
-  late ModelObjectDetection _objectModelYoloV11;
   String? textToShow;
   List? _prediction;
   File? _image;
   final ImagePicker _picker = ImagePicker();
-  bool objectDetection = false;
   List<ResultObjectDetection?> objDetect = [];
+
   @override
   void initState() {
     super.initState();
     loadModel();
   }
 
-  //load your model
   Future loadModel() async {
-    String pathImageModel = "assets/models/model_classification.pt";
-    //String pathCustomModel = "assets/models/custom_model.ptl";
     String pathObjectDetectionModel = "assets/models/yolov5s.torchscript";
-    // String pathObjectDetectionModelYolov8 = "assets/models/best.torchscript";
-    String pathObjectDetectionModelYolov11 =
-        "assets/models/yolo11n.torchscript";
+    String pathObjectDetectionModelYolov8 = "assets/models/best.torchscript";
+    String pathCustomLabels = "assets/labels/custom_labels.txt";
 
-    String pathObjectDetectionModelYolov8 =
-        "assets/models/best.torchscript"; // custom model path
-    String pathCustomLabels =
-        "assets/labels/custom_labels.txt"; // custom labels
     try {
-      _imageModel = await PytorchLite.loadClassificationModel(
-          pathImageModel, 224, 224, 1000,
-          labelPath: "assets/labels/label_classification_imageNet.txt");
-      //_customModel = await PytorchLite.loadCustomModel(pathCustomModel);
       _objectModel = await PytorchLite.loadObjectDetectionModel(
-          pathObjectDetectionModel, 80, 640, 640,
-          labelPath: "assets/labels/labels_objectDetection_Coco.txt");
+        pathObjectDetectionModel,
+        80,
+        640,
+        640,
+        labelPath: "assets/labels/labels_objectDetection_Coco.txt",
+      );
+
       _objectModelYoloV8 = await PytorchLite.loadObjectDetectionModel(
-          pathObjectDetectionModelYolov8,
-          7, // 7 because you have 7 custom classes
-          640,
-          640,
-          labelPath: pathCustomLabels,
-          objectDetectionModelType: ObjectDetectionModelType.yolov8);
-      _objectModelYoloV11 = await PytorchLite.loadObjectDetectionModel(
-          pathObjectDetectionModelYolov11, 80, 640, 640,
-          labelPath: "assets/labels/labels_objectDetection_Coco.txt",
-          objectDetectionModelType: ObjectDetectionModelType.yolov8);
+        pathObjectDetectionModelYolov8,
+        7,
+        640,
+        640,
+        labelPath: pathCustomLabels,
+        objectDetectionModelType: ObjectDetectionModelType.yolov8,
+      );
     } catch (e) {
       if (e is PlatformException) {
         print("only supported for android, Error is $e");
@@ -76,80 +61,17 @@ class RunModelByImageDemoState extends State<RunModelByImageDemo> {
     }
   }
 
-  //run an image model
-  Future runObjectDetectionWithoutLabels() async {
-    //pick a random image
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    Stopwatch stopwatch = Stopwatch()..start();
-
-    objDetect = await _objectModel
-        .getImagePredictionList(await File(image!.path).readAsBytes());
-    textToShow = inferenceTimeAsString(stopwatch);
-
-    for (var element in objDetect) {
-      print({
-        "score": element?.score,
-        "className": element?.className,
-        "class": element?.classIndex,
-        "rect": {
-          "left": element?.rect.left,
-          "top": element?.rect.top,
-          "width": element?.rect.width,
-          "height": element?.rect.height,
-          "right": element?.rect.right,
-          "bottom": element?.rect.bottom,
-        },
-      });
-    }
-    setState(() {
-      //this.objDetect = objDetect;
-      _image = File(image.path);
-    });
-  }
-
-  Future runObjectDetection() async {
-    //pick a random image
-
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    Stopwatch stopwatch = Stopwatch()..start();
-    objDetect = await _objectModel.getImagePrediction(
-        await File(image!.path).readAsBytes(),
-        minimumScore: 0.1,
-        iOUThreshold: 0.3);
-    textToShow = inferenceTimeAsString(stopwatch);
-    print('object executed in ${stopwatch.elapsed.inMilliseconds} ms');
-
-    for (var element in objDetect) {
-      print({
-        "score": element?.score,
-        "className": element?.className,
-        "class": element?.classIndex,
-        "rect": {
-          "left": element?.rect.left,
-          "top": element?.rect.top,
-          "width": element?.rect.width,
-          "height": element?.rect.height,
-          "right": element?.rect.right,
-          "bottom": element?.rect.bottom,
-        },
-      });
-    }
-    setState(() {
-      //this.objDetect = objDetect;
-      _image = File(image.path);
-    });
-  }
-
   Future runObjectDetectionYoloV8() async {
-    //pick a random image
-
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image == null) return;
+
     Stopwatch stopwatch = Stopwatch()..start();
 
     objDetect = await _objectModelYoloV8.getImagePrediction(
-        await File(image!.path).readAsBytes(),
-        minimumScore: 0.1,
-        iOUThreshold: 0.3);
+      await File(image.path).readAsBytes(),
+      minimumScore: 0.1,
+      iOUThreshold: 0.3,
+    );
     textToShow = inferenceTimeAsString(stopwatch);
 
     print('object executed in ${stopwatch.elapsed.inMilliseconds} ms');
@@ -170,7 +92,6 @@ class RunModelByImageDemoState extends State<RunModelByImageDemo> {
     }
 
     setState(() {
-      //this.objDetect = objDetect;
       _image = File(image.path);
     });
   }
