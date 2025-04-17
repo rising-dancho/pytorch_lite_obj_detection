@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -18,14 +19,16 @@ class RunModelByImageDemo extends StatefulWidget {
 
 class RunModelByImageDemoState extends State<RunModelByImageDemo> {
   ClassificationModel? _imageModel;
+  //CustomModel? _customModel;
   late ModelObjectDetection _objectModel;
   late ModelObjectDetection _objectModelYoloV8;
+  late ModelObjectDetection _objectModelYoloV11;
   String? textToShow;
   List? _prediction;
   File? _image;
   final ImagePicker _picker = ImagePicker();
+  bool objectDetection = false;
   List<ResultObjectDetection?> objDetect = [];
-
   @override
   void initState() {
     super.initState();
@@ -35,6 +38,12 @@ class RunModelByImageDemoState extends State<RunModelByImageDemo> {
   //load your model
   Future loadModel() async {
     String pathImageModel = "assets/models/model_classification.pt";
+    //String pathCustomModel = "assets/models/custom_model.ptl";
+    String pathObjectDetectionModel = "assets/models/yolov5s.torchscript";
+    // String pathObjectDetectionModelYolov8 = "assets/models/best.torchscript";
+    String pathObjectDetectionModelYolov11 =
+        "assets/models/yolo11n.torchscript";
+
     String pathObjectDetectionModelYolov8 =
         "assets/models/best.torchscript"; // custom model path
     String pathCustomLabels =
@@ -43,12 +52,20 @@ class RunModelByImageDemoState extends State<RunModelByImageDemo> {
       _imageModel = await PytorchLite.loadClassificationModel(
           pathImageModel, 224, 224, 1000,
           labelPath: "assets/labels/label_classification_imageNet.txt");
+      //_customModel = await PytorchLite.loadCustomModel(pathCustomModel);
+      _objectModel = await PytorchLite.loadObjectDetectionModel(
+          pathObjectDetectionModel, 80, 640, 640,
+          labelPath: "assets/labels/labels_objectDetection_Coco.txt");
       _objectModelYoloV8 = await PytorchLite.loadObjectDetectionModel(
           pathObjectDetectionModelYolov8,
           7, // 7 because you have 7 custom classes
           640,
           640,
           labelPath: pathCustomLabels,
+          objectDetectionModelType: ObjectDetectionModelType.yolov8);
+      _objectModelYoloV11 = await PytorchLite.loadObjectDetectionModel(
+          pathObjectDetectionModelYolov11, 80, 640, 640,
+          labelPath: "assets/labels/labels_objectDetection_Coco.txt",
           objectDetectionModelType: ObjectDetectionModelType.yolov8);
     } catch (e) {
       if (e is PlatformException) {
@@ -57,6 +74,70 @@ class RunModelByImageDemoState extends State<RunModelByImageDemo> {
         print("Error is $e");
       }
     }
+  }
+
+  //run an image model
+  Future runObjectDetectionWithoutLabels() async {
+    //pick a random image
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    Stopwatch stopwatch = Stopwatch()..start();
+
+    objDetect = await _objectModel
+        .getImagePredictionList(await File(image!.path).readAsBytes());
+    textToShow = inferenceTimeAsString(stopwatch);
+
+    for (var element in objDetect) {
+      print({
+        "score": element?.score,
+        "className": element?.className,
+        "class": element?.classIndex,
+        "rect": {
+          "left": element?.rect.left,
+          "top": element?.rect.top,
+          "width": element?.rect.width,
+          "height": element?.rect.height,
+          "right": element?.rect.right,
+          "bottom": element?.rect.bottom,
+        },
+      });
+    }
+    setState(() {
+      //this.objDetect = objDetect;
+      _image = File(image.path);
+    });
+  }
+
+  Future runObjectDetection() async {
+    //pick a random image
+
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    Stopwatch stopwatch = Stopwatch()..start();
+    objDetect = await _objectModel.getImagePrediction(
+        await File(image!.path).readAsBytes(),
+        minimumScore: 0.1,
+        iOUThreshold: 0.3);
+    textToShow = inferenceTimeAsString(stopwatch);
+    print('object executed in ${stopwatch.elapsed.inMilliseconds} ms');
+
+    for (var element in objDetect) {
+      print({
+        "score": element?.score,
+        "className": element?.className,
+        "class": element?.classIndex,
+        "rect": {
+          "left": element?.rect.left,
+          "top": element?.rect.top,
+          "width": element?.rect.width,
+          "height": element?.rect.height,
+          "right": element?.rect.right,
+          "bottom": element?.rect.bottom,
+        },
+      });
+    }
+    setState(() {
+      //this.objDetect = objDetect;
+      _image = File(image.path);
+    });
   }
 
   Future runObjectDetectionYoloV8() async {
@@ -96,30 +177,6 @@ class RunModelByImageDemoState extends State<RunModelByImageDemo> {
 
   String inferenceTimeAsString(Stopwatch stopwatch) =>
       "Inference Took ${stopwatch.elapsed.inMilliseconds} ms";
-
-  Future runClassification() async {
-    objDetect = [];
-    //pick a random image
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    //get prediction
-    //labels are 1000 random english words for show purposes
-    print(image!.path);
-    Stopwatch stopwatch = Stopwatch()..start();
-
-    textToShow = await _imageModel!
-        .getImagePrediction(await File(image.path).readAsBytes());
-    textToShow = "${textToShow ?? ""}, ${inferenceTimeAsString(stopwatch)}";
-
-    List<double?>? predictionList = await _imageModel!.getImagePredictionList(
-      await File(image.path).readAsBytes(),
-    );
-
-    print(predictionList);
-
-    setState(() {
-      _image = File(image.path);
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
