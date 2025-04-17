@@ -1,5 +1,6 @@
 # object_detection_yolov8
 - object detection snippet using flutter plugin : https://pub.dev/packages/pytorch_lite
+- trained custom model using Ultralytics Yolov8: https://github.com/ultralytics/ultralytics
 
 A new Flutter project.
 
