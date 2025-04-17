@@ -1,4 +1,4 @@
-# object_detection_yolov8
+# pytorch_lite_obj_detection
 - object detection snippet using flutter plugin : https://pub.dev/packages/pytorch_lite
 - trained custom model using Ultralytics Yolov8 (exported as .torchscript) : https://github.com/ultralytics/ultralytics
 - annotation and dataset creation using Roboflow: https://roboflow.com/
@@ -17,4 +17,4 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
-# pytorch_lite_obj_detection
+
