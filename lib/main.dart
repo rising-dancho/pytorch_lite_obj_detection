@@ -16,7 +16,6 @@ class RunModelByImageDemo extends StatefulWidget {
 }
 
 class RunModelByImageDemoState extends State<RunModelByImageDemo> {
-  late ModelObjectDetection _objectModel;
   late ModelObjectDetection _objectModelYoloV8;
   String? textToShow;
   List? _prediction;
@@ -31,19 +30,10 @@ class RunModelByImageDemoState extends State<RunModelByImageDemo> {
   }
 
   Future loadModel() async {
-    String pathObjectDetectionModel = "assets/models/yolov5s.torchscript";
     String pathObjectDetectionModelYolov8 = "assets/models/best.torchscript";
     String pathCustomLabels = "assets/labels/custom_labels.txt";
 
     try {
-      _objectModel = await PytorchLite.loadObjectDetectionModel(
-        pathObjectDetectionModel,
-        80,
-        640,
-        640,
-        labelPath: "assets/labels/labels_objectDetection_Coco.txt",
-      );
-
       _objectModelYoloV8 = await PytorchLite.loadObjectDetectionModel(
         pathObjectDetectionModelYolov8,
         7,
@@ -113,7 +103,8 @@ class RunModelByImageDemoState extends State<RunModelByImageDemo> {
               child: objDetect.isNotEmpty
                   ? _image == null
                       ? const Text('No image selected.')
-                      : _objectModel.renderBoxesOnImage(_image!, objDetect)
+                      : _objectModelYoloV8.renderBoxesOnImage(
+                          _image!, objDetect)
                   : _image == null
                       ? const Text('No image selected.')
                       : Image.file(_image!),
